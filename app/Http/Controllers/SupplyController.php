@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Supply;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use finfo;
 
 class SupplyController extends Controller
@@ -18,17 +17,17 @@ class SupplyController extends Controller
             // Intenta detectar el tipo MIME con finfo
             $finfo = new finfo(FILEINFO_MIME_TYPE);
             $mime = $finfo->buffer($binary);
-            
+
             // Si no se pudo detectar o devolvió application/octet-stream, usar imagen genérica
             if (!$mime || $mime === 'application/octet-stream') {
                 $mime = 'image/jpeg'; // Definir un tipo por defecto
             }
-            
+
             // Verifica que los datos binarios sean válidos
             if (empty($binary)) {
                 return null;
             }
-            
+
             // Codifica a base64 y crea el data-URI
             return "data:{$mime};base64," . base64_encode($binary);
         } catch (\Exception $e) {
@@ -42,7 +41,7 @@ class SupplyController extends Controller
      */
     public function index()
     {
-        $supplies = Supply::all()->map(function($s) {
+        $supplies = Supply::all()->map(function ($s) {
             if ($s->imagen) {
                 $s->imagen = $this->encodeImage($s->imagen);
             }
@@ -57,7 +56,7 @@ class SupplyController extends Controller
      */
     public function store(Request $request)
     {
-        $v = Validator::make($request->all(), [
+        $payload = $request->validate([
             'nombre'      => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'precio'      => 'required|numeric|min:0',
@@ -65,10 +64,6 @@ class SupplyController extends Controller
             'imagen'      => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'activo'      => 'boolean',
         ]);
-
-        if ($v->fails()) {
-            return response()->json($v->errors(), 422);
-        }
 
         // Procesa la imagen si viene
         if ($request->hasFile('imagen')) {
@@ -105,7 +100,7 @@ class SupplyController extends Controller
      */
     public function update(Request $request, Supply $supply)
     {
-        $v = Validator::make($request->all(), [
+        $payload = $request->validate([
             'nombre'      => 'sometimes|required|string|max:255',
             'descripcion' => 'sometimes|nullable|string',
             'precio'      => 'sometimes|required|numeric|min:0',
@@ -113,10 +108,6 @@ class SupplyController extends Controller
             'imagen'      => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'activo'      => 'sometimes|boolean',
         ]);
-
-        if ($v->fails()) {
-            return response()->json($v->errors(), 422);
-        }
 
         // Si hay un nuevo archivo, conviértelo a blob
         if ($request->hasFile('imagen')) {
