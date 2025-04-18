@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Supply;
 use Illuminate\Http\Request;
 use finfo;
+use Illuminate\Http\UploadedFile;
 
 class SupplyController extends Controller
 {
@@ -67,8 +68,9 @@ class SupplyController extends Controller
 
         // Procesa la imagen si viene
         if ($request->hasFile('imagen')) {
-            $binary = file_get_contents($request->file('imagen')->getRealPath());
-            $request->merge(['imagen' => $binary]);
+            /** @var UploadedFile $imagen */
+            $imagen = $payload['imagen'];
+            $payload['imagen'] = $imagen->store('supplies', 'public');
         }
 
         $supply = Supply::create($request->all());
@@ -111,8 +113,9 @@ class SupplyController extends Controller
 
         // Si hay un nuevo archivo, conviértelo a blob
         if ($request->hasFile('imagen')) {
-            $binary = file_get_contents($request->file('imagen')->getRealPath());
-            $request->merge(['imagen' => $binary]);
+            /** @var UploadedFile $imagen */
+            $imagen = $payload['imagen'];
+            $payload['imagen'] = $imagen->store('supplies', 'public');
         }
 
         $supply->update($request->all());
