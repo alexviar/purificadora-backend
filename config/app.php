@@ -123,9 +123,4 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'superadmin_credentials' => [
-        'email' => env('SUPERADMIN_CREDENTIALS_EMAIL'),
-        'password' => env('SUPERADMIN_CREDENTIALS_PASSWORD'),
-    ]
-
 ];

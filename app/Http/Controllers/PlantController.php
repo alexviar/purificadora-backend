@@ -59,6 +59,13 @@ class PlantController extends Controller
             ->get();
     }
 
+    public function UserPlants($user_id)
+    {
+        return Plant::with('servicios')
+            ->where('user_id', $user_id)
+            ->get();
+    }
+
     // Asignar planta a cliente (solo admin/superadmin)
     public function assignToUser(Request $request, Plant $plant)
     {

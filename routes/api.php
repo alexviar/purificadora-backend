@@ -15,7 +15,8 @@ use App\Http\Controllers\{
     PaymentController,
     CartController,
     ServiceController,
-    MaintenanceController
+    MaintenanceController,
+    UserTrainingVideoController
 };
 use Spatie\Permission\Middleware\RoleMiddleware;
 
@@ -36,20 +37,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware([RoleMiddleware::class . ':admin|superadmin'])->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{user}/assign-role', [UserController::class, 'assignRole']);
-        Route::apiResource('supplies', SupplyController::class);
+        
+        // Solo operaciones de creación, actualización y eliminación para admin/superadmin
+        Route::post('supplies', [SupplyController::class, 'store']);
+        Route::put('supplies/{supply}', [SupplyController::class, 'update']);
+        Route::patch('supplies/{supply}', [SupplyController::class, 'update']);
+        Route::delete('supplies/{supply}', [SupplyController::class, 'destroy']);
 
         Route::post('training-videos', [TrainingVideoController::class, 'store']);
         Route::put('training-videos/{training_video}', [TrainingVideoController::class, 'update']);
         Route::delete('training-videos/{training_video}', [TrainingVideoController::class, 'destroy']);
+
+        // Nuevas rutas para gestionar asignaciones de videos a usuarios
+        Route::get('users/{user}/training-videos', [UserTrainingVideoController::class, 'getUserVideos']);
+        Route::post('users/{user}/assign-video', [UserTrainingVideoController::class, 'assignVideo']);
+        Route::delete('users/videos/{userVideo}', [UserTrainingVideoController::class, 'removeUserVideo']);
 
         Route::get('payment-config', [PaymentController::class, 'index']);
         Route::put('payment-config', [PaymentController::class, 'updateConfiguration']);
 
         // Plantas: gestión completa + asignación manual
         Route::apiResource('plants', PlantController::class);
+        Route::get('plants/user/{user_id}', [PlantController::class, 'UserPlants']);
         Route::post('plants/{plant}/assign', [PlantController::class, 'assignToUser']);
         Route::post('plants/{plant}/unassign', [PlantController::class, 'unassignUser']);
     });
+
+    // Acceso a insumos de solo lectura para todos los usuarios autenticados
+    Route::get('supplies', [SupplyController::class, 'index']);
+    Route::get('supplies/{supply}', [SupplyController::class, 'show']);
 
     // Servicios para admin, superadmin, técnico
     Route::middleware([RoleMiddleware::class . ':admin|superadmin|tecnico'])->group(function () {
@@ -63,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Técnicos
     Route::middleware([RoleMiddleware::class . ':tecnico|admin|superadmin'])->group(function () {
         Route::apiResource('service-requests', ServiceRequestController::class);
+        Route::post('service-requests/{service_request}/assign-technician', [ServiceRequestController::class, 'assignTechnician']);
         Route::apiResource('supply-purchases', SupplyPurchaseController::class);
     });
 
@@ -79,6 +96,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('cart/{item}', [CartController::class, 'destroy']);
         Route::post('cart/checkout', [CartController::class, 'checkout']);
     });
+
+    // Rutas para direcciones (para todos los usuarios autenticados)
+    Route::get('user/addresses', [App\Http\Controllers\AddressController::class, 'index']);
+    Route::get('user/address', [App\Http\Controllers\AddressController::class, 'getDefault']);
+    Route::post('user/address', [App\Http\Controllers\AddressController::class, 'store']);
+    Route::get('user/address/{id}', [App\Http\Controllers\AddressController::class, 'show']);
+    Route::put('user/address/{id}', [App\Http\Controllers\AddressController::class, 'update']);
+    Route::delete('user/address/{id}', [App\Http\Controllers\AddressController::class, 'destroy']);
 
     // Común a todos los usuarios autenticados
     Route::apiResource('alerts', AlertController::class);

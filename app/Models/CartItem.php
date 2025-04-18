@@ -12,4 +12,11 @@ class CartItem extends Model
     {
         return $this->belongsTo(Cart::class);
     }
+
+    public function supply()
+    {
+        return $this->item_type === 'supply' 
+            ? $this->belongsTo(Supply::class, 'item_id')
+            : null;
+    }
 }

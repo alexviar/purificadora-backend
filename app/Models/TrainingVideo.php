@@ -13,4 +13,21 @@ class TrainingVideo extends Model
         'descripcion',
         'url'
     ];
+    
+    /**
+     * Los usuarios a los que se ha asignado este video
+     */
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_training_videos')
+                    ->withTimestamps();
+    }
+    
+    /**
+     * Relación con la tabla pivote
+     */
+    public function userVideos()
+    {
+        return $this->hasMany(UserTrainingVideo::class);
+    }
 }

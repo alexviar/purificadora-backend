@@ -110,9 +110,34 @@ class ServiceRequestController extends Controller
 
     public function update(Request $request, ServiceRequest $serviceRequest)
     {
+        // Verificar si se recibió status_id y mapearlo adecuadamente
+        if ($request->has('status_id')) {
+            // Usamos status_id directamente ya que es el campo en la base de datos
+            $request->merge(['status_id' => (int)$request->status_id]);
+        }
+        // Para compatibilidad con código anterior que usa 'estado'
+        elseif ($request->has('estado')) {
+            $estadoMap = [
+                'pendiente' => 1,
+                'en_proceso' => 2,
+                'completado' => 3,
+                // También permitimos valores numéricos
+                '1' => 1,
+                '2' => 2,
+                '3' => 3,
+                1 => 1,
+                2 => 2,
+                3 => 3
+            ];
+            
+            if (isset($estadoMap[$request->estado])) {
+                $request->merge(['status_id' => $estadoMap[$request->estado]]);
+            }
+        }
+        
         $validator = Validator::make($request->all(), [
             'tecnico_id'    => 'sometimes|exists:users,id',
-            'estado'        => 'sometimes|required|in:pendiente,en_proceso,completado',
+            'status_id'     => 'sometimes|integer|in:1,2,3',
             'comentarios'   => 'nullable|string',
             'fotos_antes'   => 'nullable',
             'fotos_despues' => 'nullable'
@@ -130,7 +155,7 @@ class ServiceRequestController extends Controller
             return response()->json(['message' => 'No puedes actualizar solicitudes de otras plantas'], 403);
         }
 
-        $data = $request->only(['tecnico_id', 'estado', 'comentarios']);
+        $data = $request->only(['tecnico_id', 'comentarios', 'status_id']);
 
         // Procesar archivos en actualización para fotos antes
         if ($request->hasFile('fotos_antes')) {
@@ -155,7 +180,7 @@ class ServiceRequestController extends Controller
 
         return response()->json([
             'message' => 'Solicitud de servicio actualizada exitosamente',
-            'request' => $serviceRequest
+            'request' => $serviceRequest->load(['planta', 'tecnico', 'cliente'])
         ]);
     }
 
