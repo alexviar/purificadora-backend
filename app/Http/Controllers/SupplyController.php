@@ -73,7 +73,7 @@ class SupplyController extends Controller
             $payload['imagen'] = $imagen->store('supplies', 'public');
         }
 
-        $supply = Supply::create($request->all());
+        $supply = Supply::create($payload);
 
         // Convierte blob a data-URI antes de responder
         if ($supply->imagen) {
@@ -118,7 +118,7 @@ class SupplyController extends Controller
             $payload['imagen'] = $imagen->store('supplies', 'public');
         }
 
-        $supply->update($request->all());
+        $supply->update($payload);
 
         // Convierte blob a data-URI antes de responder
         if ($supply->imagen) {
