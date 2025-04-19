@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Supply extends Model
 {
@@ -16,4 +18,23 @@ class Supply extends Model
         'imagen',
         'activo',
     ];
+
+    protected $hidden = [
+        'imagen'
+    ];
+
+    protected $appends = [
+        'imagen_url'
+    ];
+
+    #region Attributes
+
+    public function imagenUrl(): Attribute
+    {
+        return Attribute::get(
+            fn() => Storage::url($this->imagen)
+        );
+    }
+
+    #endregion
 }

@@ -10,44 +10,11 @@ use Illuminate\Http\UploadedFile;
 class SupplyController extends Controller
 {
     /**
-     * Helper: convierte datos binarios en data-URI con MIME detectado
-     */
-    protected function encodeImage($binary)
-    {
-        try {
-            // Intenta detectar el tipo MIME con finfo
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->buffer($binary);
-
-            // Si no se pudo detectar o devolvió application/octet-stream, usar imagen genérica
-            if (!$mime || $mime === 'application/octet-stream') {
-                $mime = 'image/jpeg'; // Definir un tipo por defecto
-            }
-
-            // Verifica que los datos binarios sean válidos
-            if (empty($binary)) {
-                return null;
-            }
-
-            // Codifica a base64 y crea el data-URI
-            return "data:{$mime};base64," . base64_encode($binary);
-        } catch (\Exception $e) {
-            \Log::error('Error al codificar imagen: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
      * Listado de insumos, con imagenes en Base64
      */
     public function index()
     {
-        $supplies = Supply::all()->map(function ($s) {
-            if ($s->imagen) {
-                $s->imagen = $this->encodeImage($s->imagen);
-            }
-            return $s;
-        });
+        $supplies = Supply::all();
 
         return response()->json($supplies);
     }
@@ -75,11 +42,6 @@ class SupplyController extends Controller
 
         $supply = Supply::create($payload);
 
-        // Convierte blob a data-URI antes de responder
-        if ($supply->imagen) {
-            $supply->imagen = $this->encodeImage($supply->imagen);
-        }
-
         return response()->json([
             'message' => 'Insumo creado exitosamente',
             'supply'  => $supply
@@ -91,9 +53,6 @@ class SupplyController extends Controller
      */
     public function show(Supply $supply)
     {
-        if ($supply->imagen) {
-            $supply->imagen = $this->encodeImage($supply->imagen);
-        }
         return response()->json($supply);
     }
 
@@ -119,11 +78,6 @@ class SupplyController extends Controller
         }
 
         $supply->update($payload);
-
-        // Convierte blob a data-URI antes de responder
-        if ($supply->imagen) {
-            $supply->imagen = $this->encodeImage($supply->imagen);
-        }
 
         return response()->json([
             'message' => 'Insumo actualizado exitosamente',
