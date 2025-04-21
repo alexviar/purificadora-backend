@@ -75,17 +75,35 @@ Route::middleware('auth:sanctum')->group(function () {
     // Visualización de Training Videos para todos los autenticados
     Route::get('training-videos', [TrainingVideoController::class, 'index']);
     Route::get('training-videos/{training_video}', [TrainingVideoController::class, 'show']);
+    
+    // Ruta para que los usuarios vean sus propios videos asignados
+    Route::get('user/training-videos', [UserTrainingVideoController::class, 'getCurrentUserVideos']);
 
-    // Técnicos
+    // Técnicos - solo admin, superadmin y técnico pueden ver/actualizar todas las solicitudes
     Route::middleware([RoleMiddleware::class . ':tecnico|admin|superadmin'])->group(function () {
-        Route::apiResource('service-requests', ServiceRequestController::class);
+        Route::get('service-requests', [ServiceRequestController::class, 'index']);
+        Route::put('service-requests/{service_request}', [ServiceRequestController::class, 'update']);
+        Route::delete('service-requests/{service_request}', [ServiceRequestController::class, 'destroy']);
         Route::post('service-requests/{service_request}/assign-technician', [ServiceRequestController::class, 'assignTechnician']);
         Route::apiResource('supply-purchases', SupplyPurchaseController::class);
+        
+        // Rutas para estadísticas
+        Route::get('stats/monthly-sales', [SupplyPurchaseController::class, 'monthlySalesStats']);
+        Route::get('stats/maintenance', [ServiceRequestController::class, 'maintenanceStats']);
+        Route::get('stats/top-selling-supplies', [SupplyPurchaseController::class, 'topSellingSupplies']);
+        Route::get('stats/product-demand-trends', [SupplyPurchaseController::class, 'productDemandTrends']);
     });
+
+    // Rutas para solicitudes de servicio (acceso para clientes para crear/ver sus propias solicitudes)
+    Route::post('service-requests', [ServiceRequestController::class, 'store']); // Crear solicitudes (clientes)
+    Route::get('service-requests/{service_request}', [ServiceRequestController::class, 'show']); // Ver detalle (todos con autenticación)
 
     // Clientes (solo ver sus plantas)
     Route::middleware([RoleMiddleware::class . ':cliente'])->group(function () {
         Route::get('my-plants', [PlantController::class, 'myPlants']);
+        Route::get('my-service-requests', [ServiceRequestController::class, 'myRequests']);
+        // Añadir ruta para pedidos del cliente
+        Route::get('user/orders', [SupplyPurchaseController::class, 'userOrders']);
     });
 
     // Carrito (cliente, admin, superadmin)

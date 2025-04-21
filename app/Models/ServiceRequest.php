@@ -13,9 +13,17 @@ class ServiceRequest extends Model
         'cliente_id',
         'tecnico_id',
         'status_id',
+        'tipo_servicio',
+        'fecha_programada',
         'comentarios',
         'fotos_antes',
         'fotos_despues'
+    ];
+
+    protected $casts = [
+        'fecha_programada' => 'datetime',
+        'fotos_antes' => 'array',
+        'fotos_despues' => 'array'
     ];
 
     public function planta()

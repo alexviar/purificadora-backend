@@ -213,4 +213,124 @@ class ServiceRequestController extends Controller
         $serviceRequest->delete();
         return response()->json(['message' => 'Solicitud de servicio eliminada correctamente']);
     }
+
+    /**
+     * Obtener las solicitudes de servicio del cliente autenticado actualmente
+     */
+    public function myRequests(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Obtener solicitudes de servicio relacionadas con plantas asignadas al cliente
+        $requests = ServiceRequest::with(['planta', 'tecnico', 'status'])
+            ->whereHas('planta', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return response()->json($requests);
+    }
+
+    /**
+     * Obtener estadísticas de mantenimientos realizados por estado y tipo
+     */
+    public function maintenanceStats(Request $request)
+    {
+        $year = $request->input('year', date('Y')); // Por defecto el año actual
+        
+        try {
+            \DB::connection()->getPdo();
+            
+            // Total de mantenimientos por estado
+            $statsByStatus = ServiceRequest::whereYear('created_at', $year)
+                ->select('status_id', \DB::raw('count(*) as total'))
+                ->groupBy('status_id')
+                ->get();
+            
+            // Convertir a array asociativo con nombres de estado
+            $statusMap = [
+                1 => 'pendiente',
+                2 => 'en_proceso',
+                3 => 'completado'
+            ];
+            
+            $statusData = [
+                'pendiente' => 0,
+                'en_proceso' => 0,
+                'completado' => 0
+            ];
+            
+            foreach ($statsByStatus as $item) {
+                $statusName = isset($statusMap[$item->status_id]) ? $statusMap[$item->status_id] : 'pendiente';
+                $statusData[$statusName] = $item->total;
+            }
+            
+            // Total de mantenimientos por tipo
+            $typeData = [];
+            $statsByType = ServiceRequest::whereYear('created_at', $year)
+                ->whereNotNull('tipo_servicio')
+                ->select('tipo_servicio', \DB::raw('count(*) as total'))
+                ->groupBy('tipo_servicio')
+                ->get();
+            
+            foreach ($statsByType as $item) {
+                $typeData[$item->tipo_servicio] = $item->total;
+            }
+            
+            // Asegurar que siempre tenemos todos los tipos de servicio en el resultado
+            $tiposServicio = ['cambio_sedimentos', 'suministro_sal', 'cambio_carbon', 'mantenimiento_preventivo'];
+            foreach ($tiposServicio as $tipo) {
+                if (!isset($typeData[$tipo])) {
+                    $typeData[$tipo] = 0;
+                }
+            }
+            
+            // Mantenimientos completados por mes
+            $completedByMonth = ServiceRequest::whereYear('created_at', $year)
+                ->where('status_id', 3) // Completados
+                ->select(
+                    \DB::raw('MONTH(created_at) as month'),
+                    \DB::raw('count(*) as total')
+                )
+                ->groupBy(\DB::raw('MONTH(created_at)'))
+                ->get();
+                
+            // Inicializar array con todos los meses
+            $monthlyStats = array_fill(1, 12, 0);
+            
+            // Rellenar con datos reales
+            foreach ($completedByMonth as $stat) {
+                $monthlyStats[$stat->month] = $stat->total;
+            }
+            
+            return response()->json([
+                'year' => $year,
+                'by_status' => $statusData,
+                'by_type' => $typeData,
+                'monthly_completed' => array_values($monthlyStats),
+                'total_completed' => $statusData['completado'],
+                'total_all' => array_sum(array_values($statusData))
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al obtener estadísticas: ' . $e->getMessage(),
+                'year' => $year,
+                'by_status' => [
+                    'pendiente' => 0,
+                    'en_proceso' => 0,
+                    'completado' => 0
+                ],
+                'by_type' => [
+                    'cambio_sedimentos' => 0,
+                    'suministro_sal' => 0,
+                    'cambio_carbon' => 0,
+                    'mantenimiento_preventivo' => 0
+                ],
+                'monthly_completed' => array_fill(0, 12, 0),
+                'total_completed' => 0,
+                'total_all' => 0
+            ], 500);
+        }
+    }
 }
