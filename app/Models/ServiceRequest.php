@@ -16,6 +16,7 @@ class ServiceRequest extends Model
         'tipo_servicio',
         'fecha_programada',
         'comentarios',
+        'comentarios_tecnico',
         'fotos_antes',
         'fotos_despues'
     ];

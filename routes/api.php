@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', fn(Request $request) => $request->user()->load('roles'));
+    Route::put('/user', [UserController::class, 'updateProfile']); // Ruta para actualizar el perfil del usuario
 
     // Admin & Superadmin
     Route::middleware([RoleMiddleware::class . ':admin|superadmin'])->group(function () {

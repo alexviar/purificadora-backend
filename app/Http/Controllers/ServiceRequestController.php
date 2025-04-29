@@ -42,9 +42,10 @@ class ServiceRequestController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'planta_id'        => 'required|exists:plants,id',
-            'tipo_servicio'    => 'required|in:cambio_sedimentos,suministro_sal,cambio_carbon,mantenimiento_preventivo',
+            'tipo_servicio'    => 'required|in:cambio_sedimentos,suministro_sal,cambio_carbon,mantenimiento_preventivo,otros',
             'fecha_programada' => 'required|date',
             'comentarios'      => 'nullable|string',
+            'comentarios_tecnico' => 'nullable|string',
             // No es obligatorio que suban archivos, pero se permite si vienen
             'fotos_antes'      => 'nullable',
             'fotos_despues'    => 'nullable'
@@ -139,6 +140,7 @@ class ServiceRequestController extends Controller
             'tecnico_id'    => 'sometimes|exists:users,id',
             'status_id'     => 'sometimes|integer|in:1,2,3',
             'comentarios'   => 'nullable|string',
+            'comentarios_tecnico' => 'nullable|string',
             'fotos_antes'   => 'nullable',
             'fotos_despues' => 'nullable'
         ]);
@@ -155,7 +157,7 @@ class ServiceRequestController extends Controller
             return response()->json(['message' => 'No puedes actualizar solicitudes de otras plantas'], 403);
         }
 
-        $data = $request->only(['tecnico_id', 'comentarios', 'status_id']);
+        $data = $request->only(['tecnico_id', 'comentarios', 'status_id', 'comentarios_tecnico']);
 
         // Procesar archivos en actualización para fotos antes
         if ($request->hasFile('fotos_antes')) {

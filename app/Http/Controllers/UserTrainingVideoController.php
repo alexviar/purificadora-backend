@@ -17,7 +17,11 @@ class UserTrainingVideoController extends Controller
     public function getCurrentUserVideos()
     {
         $user = Auth::user();
-        $videos = $user->trainingVideos;
+        
+        // Cargar los videos con la información completa
+        $videos = $user->userTrainingVideos()
+            ->with('trainingVideo')
+            ->get();
         
         return response()->json($videos);
     }
@@ -32,7 +36,10 @@ class UserTrainingVideoController extends Controller
             return response()->json(['message' => 'No autorizado para ver los videos de este usuario'], 403);
         }
         
-        $videos = $user->trainingVideos;
+        // Cargar los videos con la información completa
+        $videos = $user->userTrainingVideos()
+            ->with('trainingVideo') // Esta es la clave: cargar la relación con el video completo
+            ->get();
         
         return response()->json($videos);
     }
