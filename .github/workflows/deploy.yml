@@ -1,0 +1,134 @@
+name: Deploy Laravel to cPanel via FTP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Upload to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          protocol: ftp
+          local-dir: ./
+          server-dir: ./
+          exclude: |
+            **/.git*
+            **/docker/**
+            **/tests/**
+            **/vendor/**
+            .env
+            .github/**
+
+  check-composer-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      composer_changed: ${{ steps.check-composer.outputs.composer_changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check composer changes
+        id: check-composer
+        run: |
+          echo "composer_changed=true" >> $GITHUB_OUTPUT
+  
+  vendor:
+    needs: [check-composer-changes]
+    if: ${{ needs.check-composer-changes.outputs.composer_changed == 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+          
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, bcmath, pdo, curl, xml, ctype, fileinfo, openssl, tokenizer, zip
+          tools: composer
+
+      - name: Install PHP dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader
+          zip -r vendor.zip vendor
+
+      - name: Generate unzip script
+        id: generate-unzip-script
+        run: |
+          AUTH_TOKEN=$(openssl rand -hex 32)
+          mkdir -p public
+          sed "s/{{TOKEN}}/$AUTH_TOKEN/g" .github/scripts/unzip-vendor.template.php > public/unzip-vendor.php
+          echo "token=$AUTH_TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Upload unzip script
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          protocol: ftp
+          local-dir: ./
+          server-dir: ./
+          exclude: |
+            **/*
+            !vendor.zip
+            !public/unzip-vendor.php
+
+      - name: Execute unzip script
+        run: |
+          curl -fsS \
+            -H "User-Agent: GitHub Actions" \
+            "${{ secrets.DEPLOY_URL }}/unzip-vendor.php?token=${{ steps.generate-unzip-script.outputs.token }}"
+
+  post-deploy:
+    needs: [deploy, vendor]
+    # if: |
+    #   ${{ 
+    #     always() && 
+    #     needs.deploy.result == 'success' && 
+    #     (needs.vendor.result == 'success' || needs.vendor.result == 'skipped') 
+    #   }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Generate post-deploy script
+        id: generate-post-deploy
+        run: |
+          AUTH_TOKEN=$(openssl rand -hex 32)
+          mkdir -p public
+          sed "s/{{TOKEN}}/$AUTH_TOKEN/g" .github/scripts/post-deploy.template.php > public/post-deploy.php
+          echo "token=$AUTH_TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Upload post-deploy script
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          protocol: ftp
+          local-dir: ./public/
+          server-dir: ./public/
+          exclude: |
+            **/*
+            !post-deploy.php
+
+      - name: Execute post-deploy commands
+        run: |
+          curl -fsS \
+            -H "User-Agent: GitHub Actions" \
+            "${{ secrets.DEPLOY_URL }}/post-deploy.php?token=${{ steps.generate-post-deploy.outputs.token }}"
