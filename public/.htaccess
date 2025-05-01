@@ -3,11 +3,7 @@
         Options -MultiViews -Indexes
     </IfModule>
 
-    <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteCond %{REQUEST_METHOD} ^(PUT|DELETE|POST) [NC]
-    RewriteRule .* - [L]
-    </IfModule>
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
