@@ -98,11 +98,11 @@ class ServiceRequestController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('tecnico') && $serviceRequest->tecnico_id !== $user->id) {
+        if ($user->hasRole('tecnico') && $serviceRequest->tecnico_id != $user->id) {
             return response()->json(['message' => 'No puedes ver solicitudes que no te fueron asignadas'], 403);
         }
 
-        if ($user->hasRole('cliente') && $serviceRequest->planta->user_id !== $user->id) {
+        if ($user->hasRole('cliente') && $serviceRequest->planta->user_id != $user->id) {
             return response()->json(['message' => 'No puedes ver solicitudes de otras plantas'], 403);
         }
 
@@ -150,10 +150,10 @@ class ServiceRequestController extends Controller
         }
 
         $user = Auth::user();
-        if ($user->hasRole('tecnico') && $serviceRequest->tecnico_id !== $user->id) {
+        if ($user->hasRole('tecnico') && $serviceRequest->tecnico_id != $user->id) {
             return response()->json(['message' => 'No puedes actualizar solicitudes que no te fueron asignadas'], 403);
         }
-        if ($user->hasRole('cliente') && $serviceRequest->planta->user_id !== $user->id) {
+        if ($user->hasRole('cliente') && $serviceRequest->planta->user_id != $user->id) {
             return response()->json(['message' => 'No puedes actualizar solicitudes de otras plantas'], 403);
         }
 

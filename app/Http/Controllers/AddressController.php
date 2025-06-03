@@ -26,12 +26,12 @@ class AddressController extends Controller
     {
         $user = Auth::user();
         $address = $user->defaultAddress();
-        
+
         if (!$address) {
             // Si no hay dirección predeterminada, devolver la primera dirección
             $address = $user->addresses()->first();
         }
-        
+
         return response()->json($address);
     }
 
@@ -55,14 +55,14 @@ class AddressController extends Controller
         }
 
         $user = Auth::user();
-        
+
         // Si es la dirección predeterminada, quitar ese estado de las demás direcciones
         if ($request->is_default) {
             $user->addresses()->update(['is_default' => false]);
         }
-        
+
         // Si es la primera dirección del usuario, hacerla predeterminada
-        if ($user->addresses()->count() === 0) {
+        if ($user->addresses()->count() == 0) {
             $request->merge(['is_default' => true]);
         }
 
@@ -101,12 +101,12 @@ class AddressController extends Controller
 
         $user = Auth::user();
         $address = $user->addresses()->findOrFail($id);
-        
+
         // Si se establece como predeterminada, quitar ese estado de las demás direcciones
         if ($request->has('is_default') && $request->is_default) {
             $user->addresses()->where('id', '!=', $id)->update(['is_default' => false]);
         }
-        
+
         $address->update($request->all());
         return response()->json($address);
     }
@@ -118,7 +118,7 @@ class AddressController extends Controller
     {
         $user = Auth::user();
         $address = $user->addresses()->findOrFail($id);
-        
+
         // Si es la dirección predeterminada y existen otras direcciones, establecer otra como predeterminada
         if ($address->is_default) {
             $otherAddress = $user->addresses()->where('id', '!=', $id)->first();
@@ -126,7 +126,7 @@ class AddressController extends Controller
                 $otherAddress->update(['is_default' => true]);
             }
         }
-        
+
         $address->delete();
         return response()->json(null, 204);
     }

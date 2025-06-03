@@ -15,7 +15,7 @@ class CartItem extends Model
 
     public function supply()
     {
-        return $this->item_type === 'supply' 
+        return $this->item_type == 'supply'
             ? $this->belongsTo(Supply::class, 'item_id')
             : null;
     }

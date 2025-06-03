@@ -79,7 +79,7 @@ class AuthController extends Controller
             $request->only('email')
         );
 
-        return $status === Password::RESET_LINK_SENT
+        return $status == Password::RESET_LINK_SENT
             ? response()->json(['message' => 'Reset password link sent to your email'])
             : response()->json(['message' => 'Unable to send reset link'], 400);
     }
@@ -107,7 +107,7 @@ class AuthController extends Controller
             }
         );
 
-        if ($status === Password::PASSWORD_RESET) {
+        if ($status == Password::PASSWORD_RESET) {
             return response()->json(['message' => 'Password has been reset successfully']);
         } else {
             return response()->json(['message' => trans($status)], 400);

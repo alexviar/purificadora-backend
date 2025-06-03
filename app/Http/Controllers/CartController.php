@@ -21,19 +21,19 @@ class CartController extends Controller
         $user = Auth::user();
         // Buscar o crear un carrito activo para el usuario
         $cart = $this->getOrCreateCart($user->id);
-        
+
         // Incluir los suministros relacionados
         $cartItems = CartItem::where('cart_id', $cart->id)->get();
-        
+
         // Cargar información detallada de cada ítem
-        $items = $cartItems->map(function($item) {
+        $items = $cartItems->map(function ($item) {
             $itemDetails = null;
-            if ($item->item_type === 'supply') {
+            if ($item->item_type == 'supply') {
                 $itemDetails = Supply::find($item->item_id);
-            } elseif ($item->item_type === 'plant') {
+            } elseif ($item->item_type == 'plant') {
                 $itemDetails = Plant::find($item->item_id);
             }
-            
+
             return [
                 'id' => $item->id,
                 'cantidad' => $item->cantidad,
@@ -62,13 +62,13 @@ class CartController extends Controller
             $cart = $this->getOrCreateCart($user->id);
 
             // Verificar que el item exista
-            if ($request->item_type === 'supply') {
+            if ($request->item_type == 'supply') {
                 $item = Supply::find($request->item_id);
                 if (!$item) {
                     return response()->json(['message' => 'Suministro no encontrado'], 404);
                 }
                 $unitPrice = $item->precio;
-            } elseif ($request->item_type === 'plant') {
+            } elseif ($request->item_type == 'plant') {
                 $item = Plant::find($request->item_id);
                 if (!$item) {
                     return response()->json(['message' => 'Planta no encontrada'], 404);
@@ -148,16 +148,16 @@ class CartController extends Controller
         // Verificar que el usuario tenga una dirección
         $addressId = $request->address_id;
         $address = null;
-        
+
         if ($addressId) {
             $address = Address::where('id', $addressId)
-                      ->where('user_id', $user->id)
-                      ->first();
+                ->where('user_id', $user->id)
+                ->first();
         } else {
             // Intentar obtener la dirección predeterminada
             $address = $user->defaultAddress();
         }
-        
+
         if (!$address) {
             return response()->json(['message' => 'No se encontró una dirección de envío válida'], 400);
         }

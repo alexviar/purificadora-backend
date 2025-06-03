@@ -17,12 +17,12 @@ class UserTrainingVideoController extends Controller
     public function getCurrentUserVideos()
     {
         $user = Auth::user();
-        
+
         // Cargar los videos con la información completa
         $videos = $user->userTrainingVideos()
             ->with('trainingVideo')
             ->get();
-        
+
         return response()->json($videos);
     }
 
@@ -32,15 +32,15 @@ class UserTrainingVideoController extends Controller
     public function getUserVideos(User $user)
     {
         // Solo admin/superadmin pueden ver los videos de otros usuarios
-        if (!Auth::user()->hasRole(['admin', 'superadmin']) && Auth::id() !== $user->id) {
+        if (!Auth::user()->hasRole(['admin', 'superadmin']) && Auth::id() != $user->id) {
             return response()->json(['message' => 'No autorizado para ver los videos de este usuario'], 403);
         }
-        
+
         // Cargar los videos con la información completa
         $videos = $user->userTrainingVideos()
             ->with('trainingVideo') // Esta es la clave: cargar la relación con el video completo
             ->get();
-        
+
         return response()->json($videos);
     }
 
@@ -59,7 +59,7 @@ class UserTrainingVideoController extends Controller
 
         // Verificar si ya está asignado
         $exists = $user->trainingVideos()->where('training_video_id', $request->training_video_id)->exists();
-        
+
         if ($exists) {
             return response()->json(['message' => 'El video ya está asignado a este usuario'], 422);
         }

@@ -86,7 +86,7 @@ class PlantController extends Controller
             'user_id' => 'required|exists:users,id'
         ]);
 
-        if ($plant->user_id !== null) {
+        if ($plant->user_id != null) {
             return response()->json(['message' => 'Esta planta ya está asignada a un cliente.'], 409);
         }
 

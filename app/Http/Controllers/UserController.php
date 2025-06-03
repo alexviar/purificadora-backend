@@ -15,14 +15,14 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with('roles');
-    
+
         if ($request->has('role')) {
             $role = $request->input('role');
-            $query->whereHas('roles', function($q) use ($role) {
+            $query->whereHas('roles', function ($q) use ($role) {
                 $q->where('name', $role);
             });
         }
-    
+
         $users = $query->get();
         return response()->json($users);
     }
@@ -45,7 +45,7 @@ class UserController extends Controller
         $currentUser = Auth::user();
         // Si el usuario autenticado es admin y NO es superadmin, solo se permiten técnicos.
         if ($currentUser->hasRole('admin') && !$currentUser->hasRole('superadmin')) {
-            if ($request->role !== 'tecnico') {
+            if ($request->role != 'tecnico') {
                 return response()->json(['error' => 'Los administradores solo pueden crear técnicos'], 403);
             }
         }
@@ -97,7 +97,7 @@ class UserController extends Controller
 
         // Actualizar campos básicos de usuario, incluyendo el teléfono
         $user->update($request->only(['name', 'email', 'telefono']));
-        
+
         return response()->json([
             'message' => 'Usuario actualizado correctamente',
             'user'    => $user->load('roles')
@@ -109,7 +109,7 @@ class UserController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        
+
         $validator = Validator::make($request->all(), [
             'name'     => 'sometimes|required|string|max:255',
             'email'    => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
@@ -134,7 +134,7 @@ class UserController extends Controller
 
         // Actualizar campos básicos de usuario, incluyendo el teléfono
         $user->update($request->only(['name', 'email', 'telefono']));
-        
+
         return response()->json([
             'message' => 'Perfil actualizado correctamente',
             'user'    => $user->load('roles')
@@ -158,19 +158,19 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'role' => 'required|string|exists:roles,name',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
-    
+
         /** @var \App\Models\User $currentUser */
         $currentUser = Auth::user();
         if ($user->roles->contains('name', 'superadmin') && !$currentUser->roles->contains('name', 'superadmin')) {
             return response()->json(['message' => 'No tienes permiso para modificar este usuario'], 403);
         }
-    
+
         $user->syncRoles([$request->role]);
-    
+
         return response()->json([
             'message' => 'Rol asignado correctamente',
             'user'    => $user->load('roles')
