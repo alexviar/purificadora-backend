@@ -7,9 +7,22 @@ use Illuminate\Http\Request;
 
 class PlantController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Plant::with('servicios', 'user')->get();
+        $query = Plant::query();
+        $query->with('servicios', 'user')->get();
+
+        $query->when($request->has('search'), function ($q) use ($request) {
+            $search = $request->input('search');
+            $q->where(function ($subQuery) use ($search) {
+                $subQuery->where('nombre', 'like', "%{$search}%")
+                    ->orWhere('direccion_instalacion', 'like', "%{$search}%")
+                    ->orWhere('paquete_instalado', 'like', "%{$search}%");
+            });
+        });
+
+        $result = $query->paginate();
+        return $result;
     }
 
     public function store(Request $request)

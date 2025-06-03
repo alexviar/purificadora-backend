@@ -6,6 +6,9 @@ use App\Models\Supply;
 use Illuminate\Http\Request;
 use finfo;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class SupplyController extends Controller
 {
@@ -14,9 +17,17 @@ class SupplyController extends Controller
      */
     public function index()
     {
-        $supplies = Supply::all();
+        $query = Supply::query();
 
-        return response()->json($supplies);
+        $query->when(request()->has('search'), function ($q) {
+            $search = request()->input('search');
+            $q->where(function ($subQuery) use ($search) {
+                $subQuery->where('nombre', 'like', "%{$search}%")
+                    ->orWhere('descripcion', 'like', "%{$search}%");
+            });
+        });
+
+        return $query->paginate();
     }
 
     /**
@@ -77,7 +88,23 @@ class SupplyController extends Controller
             $payload['imagen'] = $imagen->store('supplies', 'public');
         }
 
-        $supply->update($payload);
+        try {
+            DB::transaction(function () use ($supply, $payload) {
+                $oldImagen = $supply->imagen;
+                $supply->update($payload);
+                // Elimina la imagen anterior si se está actualizando
+                if ($oldImagen && $oldImagen != $supply->imagen) {
+                    Storage::disk('public')->delete($oldImagen);
+                }
+            });
+        } catch (\Throwable $t) {
+            if (Arr::has($payload, 'imagen')) {
+                /** @var UploadedFile $imagen */
+                $imagen = $payload['imagen'];
+                Storage::disk('public')->delete($imagen);
+            }
+            throw $t;
+        }
 
         return response()->json([
             'message' => 'Insumo actualizado exitosamente',
