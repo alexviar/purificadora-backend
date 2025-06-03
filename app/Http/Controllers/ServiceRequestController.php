@@ -59,7 +59,7 @@ class ServiceRequestController extends Controller
         if ($user->hasRole('cliente')) {
             $plant = Plant::find($request->planta_id);
             if (!$plant || $plant->user_id !== $user->id) {
-                return response()->json(['message' => 'No puedes solicitar servicio para esta planta'], 403);
+                return response()->json(['message' => 'No puedes solicitar servicio para esta planta', 'data' => ['plant' => $plant, 'user' => $user]], 403);
             }
         }
 
@@ -130,12 +130,12 @@ class ServiceRequestController extends Controller
                 2 => 2,
                 3 => 3
             ];
-            
+
             if (isset($estadoMap[$request->estado])) {
                 $request->merge(['status_id' => $estadoMap[$request->estado]]);
             }
         }
-        
+
         $validator = Validator::make($request->all(), [
             'tecnico_id'    => 'sometimes|exists:users,id',
             'status_id'     => 'sometimes|integer|in:1,2,3',
@@ -222,7 +222,7 @@ class ServiceRequestController extends Controller
     public function myRequests(Request $request)
     {
         $user = Auth::user();
-        
+
         // Obtener solicitudes de servicio relacionadas con plantas asignadas al cliente
         $requests = ServiceRequest::with(['planta', 'tecnico', 'status'])
             ->whereHas('planta', function ($query) use ($user) {
@@ -230,7 +230,7 @@ class ServiceRequestController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         return response()->json($requests);
     }
 
@@ -240,34 +240,34 @@ class ServiceRequestController extends Controller
     public function maintenanceStats(Request $request)
     {
         $year = $request->input('year', date('Y')); // Por defecto el año actual
-        
+
         try {
             \DB::connection()->getPdo();
-            
+
             // Total de mantenimientos por estado
             $statsByStatus = ServiceRequest::whereYear('created_at', $year)
                 ->select('status_id', \DB::raw('count(*) as total'))
                 ->groupBy('status_id')
                 ->get();
-            
+
             // Convertir a array asociativo con nombres de estado
             $statusMap = [
                 1 => 'pendiente',
                 2 => 'en_proceso',
                 3 => 'completado'
             ];
-            
+
             $statusData = [
                 'pendiente' => 0,
                 'en_proceso' => 0,
                 'completado' => 0
             ];
-            
+
             foreach ($statsByStatus as $item) {
                 $statusName = isset($statusMap[$item->status_id]) ? $statusMap[$item->status_id] : 'pendiente';
                 $statusData[$statusName] = $item->total;
             }
-            
+
             // Total de mantenimientos por tipo
             $typeData = [];
             $statsByType = ServiceRequest::whereYear('created_at', $year)
@@ -275,11 +275,11 @@ class ServiceRequestController extends Controller
                 ->select('tipo_servicio', \DB::raw('count(*) as total'))
                 ->groupBy('tipo_servicio')
                 ->get();
-            
+
             foreach ($statsByType as $item) {
                 $typeData[$item->tipo_servicio] = $item->total;
             }
-            
+
             // Asegurar que siempre tenemos todos los tipos de servicio en el resultado
             $tiposServicio = ['cambio_sedimentos', 'suministro_sal', 'cambio_carbon', 'mantenimiento_preventivo'];
             foreach ($tiposServicio as $tipo) {
@@ -287,7 +287,7 @@ class ServiceRequestController extends Controller
                     $typeData[$tipo] = 0;
                 }
             }
-            
+
             // Mantenimientos completados por mes
             $completedByMonth = ServiceRequest::whereYear('created_at', $year)
                 ->where('status_id', 3) // Completados
@@ -297,15 +297,15 @@ class ServiceRequestController extends Controller
                 )
                 ->groupBy(\DB::raw('MONTH(created_at)'))
                 ->get();
-                
+
             // Inicializar array con todos los meses
             $monthlyStats = array_fill(1, 12, 0);
-            
+
             // Rellenar con datos reales
             foreach ($completedByMonth as $stat) {
                 $monthlyStats[$stat->month] = $stat->total;
             }
-            
+
             return response()->json([
                 'year' => $year,
                 'by_status' => $statusData,
