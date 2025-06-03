@@ -58,7 +58,7 @@ class ServiceRequestController extends Controller
         $user = Auth::user();
         if ($user->hasRole('cliente')) {
             $plant = Plant::find($request->planta_id);
-            if (!$plant || $plant->user_id !== $user->id) {
+            if (!$plant || $plant->user_id != $user->id) {
                 return response()->json(['message' => 'No puedes solicitar servicio para esta planta', 'data' => ['plant' => $plant, 'user' => $user]], 403);
             }
         }
