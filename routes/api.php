@@ -22,7 +22,8 @@ use Spatie\Permission\Middleware\RoleMiddleware;
 
 // Rutas públicas
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login']); // TODO: Remove this route
+Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/test', fn() => response()->json(['message' => 'API is working']));
@@ -31,14 +32,15 @@ Route::get('/test', fn() => response()->json(['message' => 'API is working']));
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', fn(Request $request) => $request->user()->load('roles'));
+    Route::get('/user', fn(Request $request) => $request->user()->load('roles')); // TODO: Remove this route
+    Route::get('/auth/user', fn(Request $request) => $request->user()->load('roles'));
     Route::put('/user', [UserController::class, 'updateProfile']); // Ruta para actualizar el perfil del usuario
 
     // Admin & Superadmin
     Route::middleware([RoleMiddleware::class . ':admin|superadmin'])->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{user}/assign-role', [UserController::class, 'assignRole']);
-        
+
         // Solo operaciones de creación, actualización y eliminación para admin/superadmin
         Route::post('supplies', [SupplyController::class, 'store']);
         Route::put('supplies/{supply}', [SupplyController::class, 'update']);
@@ -76,7 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Visualización de Training Videos para todos los autenticados
     Route::get('training-videos', [TrainingVideoController::class, 'index']);
     Route::get('training-videos/{training_video}', [TrainingVideoController::class, 'show']);
-    
+
     // Ruta para que los usuarios vean sus propios videos asignados
     Route::get('user/training-videos', [UserTrainingVideoController::class, 'getCurrentUserVideos']);
 
@@ -87,7 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('service-requests/{service_request}', [ServiceRequestController::class, 'destroy']);
         Route::post('service-requests/{service_request}/assign-technician', [ServiceRequestController::class, 'assignTechnician']);
         Route::apiResource('supply-purchases', SupplyPurchaseController::class);
-        
+
         // Rutas para estadísticas
         Route::get('stats/monthly-sales', [SupplyPurchaseController::class, 'monthlySalesStats']);
         Route::get('stats/maintenance', [ServiceRequestController::class, 'maintenanceStats']);
