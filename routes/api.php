@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn(Request $request) => $request->user()->load('roles')); // TODO: Remove this route
     Route::get('/auth/user', fn(Request $request) => $request->user()->load('roles'));
     Route::put('/user', [UserController::class, 'updateProfile']); // Ruta para actualizar el perfil del usuario
+    Route::delete('/auth/me', [AuthController::class, 'deleteAccount']);
 
     // Admin & Superadmin
     Route::middleware([RoleMiddleware::class . ':admin|superadmin'])->group(function () {
