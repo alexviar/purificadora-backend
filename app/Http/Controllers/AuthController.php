@@ -19,7 +19,6 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|string|in:superadmin,admin,tecnico,cliente', // Validar rol permitido
         ]);
 
         if ($validator->fails()) {
@@ -32,13 +31,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // Asignar rol al usuario
-        $role = Role::where('name', $request->role)->first();
-        if ($role) {
-            $user->assignRole($role);
-        } else {
-            return response()->json(['message' => 'Rol no válido'], 400);
-        }
+        $user->assignRole('cliente');
 
         return response()->json([
             'message' => 'Usuario registrado correctamente',
