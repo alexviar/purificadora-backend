@@ -21,6 +21,11 @@ class PlantController extends Controller
             });
         });
 
+        $query->when($request->has('filter.client_id'), function ($q) use ($request) {
+            $clientId = $request->input('filter.client_id');
+            $q->where('user_id', $clientId);
+        });
+
         $result = $query->paginate();
         return $result;
     }
@@ -72,6 +77,7 @@ class PlantController extends Controller
             ->get();
     }
 
+    // TODO: delete this endpoint
     public function UserPlants($user_id)
     {
         return Plant::with('servicios')
