@@ -77,23 +77,16 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name'     => 'sometimes|required|string|max:255',
             'email'    => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
-            'telefono' => 'nullable|string|max:20',
-            'current_password' => 'nullable|string|required_with:password',
             'password' => 'nullable|string|min:6|confirmed',
+            'role'     => 'required|string|exists:roles,name'
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        // Verificar la contraseña actual si se intenta cambiar la contraseña
-        if ($request->filled('current_password') && $request->filled('password')) {
-            if (!Hash::check($request->current_password, $user->password)) {
-                return response()->json(['error' => 'La contraseña actual es incorrecta'], 422);
-            }
-            // Actualizar contraseña
-            $user->password = Hash::make($request->password);
-        }
+        // Asigna el rol indicado
+        $user->syncRoles([$request->role]);
 
         // Actualizar campos básicos de usuario, incluyendo el teléfono
         $user->update($request->only(['name', 'email', 'telefono']));
