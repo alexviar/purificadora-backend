@@ -89,7 +89,7 @@ class UserController extends Controller
         $user->syncRoles([$request->role]);
 
         // Actualizar campos básicos de usuario, incluyendo el teléfono
-        $user->update($request->only(['name', 'email', 'telefono']));
+        $user->update($request->only(['name', 'email', 'telefono', 'password']));
 
         return response()->json([
             'message' => 'Usuario actualizado correctamente',
