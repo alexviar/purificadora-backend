@@ -16,9 +16,9 @@ class SupplyPurchaseController extends Controller
         $query = SupplyPurchase::with('cliente');
 
         if ($request->has('estado')) {
-            $query->where('estado', $request->input('estado'));
+            $query->whereHas('status', fn($query) => $query->where("name", $request->input('estado')));
         } else {
-            $query->where('estado', '<>', PurchaseStatuses::CANCELLED->value);
+            $query->where('status_id', '<>', PurchaseStatuses::CANCELLED->value);
         }
 
         return response()->json($query->get());
