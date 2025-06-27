@@ -57,8 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('users/{user}/assign-video', [UserTrainingVideoController::class, 'assignVideo']);
         Route::delete('users/videos/{userVideo}', [UserTrainingVideoController::class, 'removeUserVideo']);
 
-        Route::get('payment-config', [PaymentController::class, 'index']);
-        Route::put('payment-config', [PaymentController::class, 'updateConfiguration']);
+        Route::prefix('webhooks')->group(function () {
+            Route::post('stripe', '\App\Http\Controllers\StripeWebhookController@handleWebhook');
+        });
 
         // Plantas: gestión completa + asignación manual
         Route::apiResource('plants', PlantController::class);
@@ -131,4 +132,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('alerts', AlertController::class);
     Route::apiResource('notifications', NotificationController::class);
     Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+
+    Route::post('/payments/intent', [\App\Http\Controllers\PaymentController::class, 'createIntent']);
 });

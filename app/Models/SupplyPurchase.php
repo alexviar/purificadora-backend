@@ -12,7 +12,8 @@ class SupplyPurchase extends Model
         'cliente_id',
         'status_id',
         'precio_total',
-        'metodo_pago'
+        'metodo_pago',
+        'payment_intent_id'
     ];
 
     public function cliente()

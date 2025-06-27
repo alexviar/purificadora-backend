@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PurchaseStatuses;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\CartItem;
@@ -11,6 +12,7 @@ use App\Models\SupplyPurchase;
 use App\Models\SupplyPurchaseDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 
@@ -137,6 +139,7 @@ class CartController extends Controller
 
     public function checkout(Request $request)
     {
+        /** @var User $user */
         $user = Auth::user();
         $cart = $this->getOrCreateCart($user->id);
         $cartItems = CartItem::where('cart_id', $cart->id)->get();
@@ -167,10 +170,9 @@ class CartController extends Controller
             return $item->cantidad * $item->precio_unitario;
         });
 
-        // Crear la compra
-        $purchase = SupplyPurchase::create([
+        $payload = [
             'cliente_id' => $user->id,
-            'status_id' => 1, // Status pendiente
+            'status_id' => $request->metodo_pago === 'stripe' ? PurchaseStatuses::PENDING_PAYMENT->value : PurchaseStatuses::PENDING->value,
             'precio_total' => $precioTotal,
             'metodo_pago' => $request->metodo_pago ?? 'efectivo', // Por defecto efectivo
             'direccion_entrega' => json_encode([
@@ -181,27 +183,61 @@ class CartController extends Controller
                 'state' => $address->state,
                 'postal_code' => $address->postal_code
             ])
-        ]);
+        ];
 
-        // Crear los detalles de la compra
-        foreach ($cartItems as $item) {
-            SupplyPurchaseDetail::create([
-                'compra_insumo_id' => $purchase->id,
-                'status_id' => 1, // Status pendiente
-                'tipo' => $item->item_type,
-                'item_id' => $item->item_id,
-                'cantidad' => $item->cantidad,
-                'precio_unitario' => $item->precio_unitario
+        return DB::transaction(function () use ($user, $cart, $cartItems, $precioTotal, $payload) {
+            //Eliminar las compras pendientes de pago
+            SupplyPurchase::where('cliente_id', $user->id)->where('status_id', PurchaseStatuses::PENDING_PAYMENT->value)->update([
+                'status_id' => PurchaseStatuses::CANCELLED->value,
             ]);
-        }
 
-        // Limpiar el carrito
-        CartItem::where('cart_id', $cart->id)->delete();
+            //Crear la compra y los detalles de la compra
+            $purchase = SupplyPurchase::create($payload);
+            $purchase->detalles()->createMany($cartItems->map(function ($item) use ($purchase) {
+                return [
+                    'compra_insumo_id' => $purchase->id,
+                    'status_id' => 1, // Status pendiente
+                    'tipo' => $item->item_type,
+                    'item_id' => $item->item_id,
+                    'cantidad' => $item->cantidad,
+                    'precio_unitario' => $item->precio_unitario
+                ];
+            }));
 
-        return response()->json([
-            'message' => 'Compra realizada con éxito',
-            'purchase' => $purchase
-        ]);
+            if ($purchase->metodo_pago === 'stripe') {
+                // Stripe requiere el monto en centavos
+                $amountCents = intval($precioTotal * 100);
+                \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+
+                $paymentIntent = \Stripe\PaymentIntent::create([
+                    'metadata' => [
+                        'purchase_id' => $purchase->id,
+                    ],
+                    'amount' => $amountCents,
+                    'currency' => 'mxn',
+                    'automatic_payment_methods' => ['enabled' => true],
+                ]);
+
+                $purchase->payment_intent_id = $paymentIntent->id;
+                $purchase->save();
+
+                return response()->json([
+                    'message' => 'Compra realizada con éxito',
+                    'purchase' => $purchase,
+                    'client_secret' => $paymentIntent->client_secret
+                ]);
+            } else if ($purchase->metodo_pago === 'efectivo') {
+                // Limpiar el carrito
+                CartItem::where('cart_id', $cart->id)->delete();
+
+                return response()->json([
+                    'message' => 'Compra realizada con éxito',
+                    'purchase' => $purchase
+                ]);
+            }
+
+            return $purchase;
+        });
     }
 
     /**
