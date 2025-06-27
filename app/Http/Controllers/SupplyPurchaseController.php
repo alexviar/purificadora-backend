@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PurchaseStatuses;
 use App\Models\SupplyPurchase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -16,6 +17,8 @@ class SupplyPurchaseController extends Controller
 
         if ($request->has('estado')) {
             $query->where('estado', $request->input('estado'));
+        } else {
+            $query->where('estado', '<>', PurchaseStatuses::CANCELLED->value);
         }
 
         return response()->json($query->get());
